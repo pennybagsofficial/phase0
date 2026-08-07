@@ -245,6 +245,10 @@ def main(a):
     for r in rows:
         if r["net_bps"] <= 0:
             continue
+        if r["spread_bps"] > a.max_spread:
+            continue                      # دفتر شکسته — تله
+        if r["bid_depth"] < a.min_depth or r["ask_depth"] < a.min_depth:
+            continue
         if r["trades_hr"] is not None and r["trades_hr"] < a.min_trades:
             continue
         shown += 1
@@ -257,7 +261,10 @@ def main(a):
 
     # ---------------- خلاصه ----------------
     viable = [r for r in rows if r["net_bps"] > 0
-              and (r["trades_hr"] or 0) >= a.min_trades]
+              and (r["trades_hr"] or 0) >= a.min_trades
+              and r["spread_bps"] <= a.max_spread
+              and r["bid_depth"] >= a.min_depth
+              and r["ask_depth"] >= a.min_depth]
     dead = [r for r in rows if r["net_bps"] <= 0]
 
     print("\n" + "=" * 100)
@@ -285,6 +292,12 @@ def main(a):
         w.writerows(rows)
     print(f"\nهمه‌ی نتایج در {out} ذخیره شد ({len(rows)} جفت).")
 
+    with open("top_pairs.txt", "w") as fh:
+        fh.write("# تولید خودکار توسط spread_scanner — هر روز دوباره اجرا کن\n")
+        for r in viable[:a.pairs_out]:
+            fh.write(f"{r['symbol']}\n")
+    print(f"{min(len(viable), a.pairs_out)} جفت برتر در top_pairs.txt نوشته شد.")
+
     print("\n⚠ این اعداد سقف نظری‌اند، نه پیش‌بینی درآمد.")
     print("  فرض می‌کنند سفارش لیمیتت پر می‌شود و انتخاب معکوس نمی‌خوری.")
     print("  در عمل معمولاً بخش بزرگی از این حاشیه از دست می‌رود.")
@@ -304,6 +317,12 @@ if __name__ == "__main__":
                    help="حداقل حجم ۲۴ ساعته به دلار")
     p.add_argument("--min-trades", type=float, default=20,
                    help="حداقل معامله در ساعت")
+    p.add_argument("--max-spread", type=float, default=200.0,
+                   help="اسپرد بیشتر از این = دفتر شکسته، حذف شود")
+    p.add_argument("--min-depth", type=float, default=2000.0,
+                   help="حداقل عمق هر طرف به دلار")
+    p.add_argument("--pairs-out", type=int, default=6,
+                   help="چند جفت در top_pairs.txt نوشته شود")
     p.add_argument("--share", type=float, default=0.05,
                    help="سهم فرضی تو از حجم جفت (۰.۰۵ = ۵٪)")
     main(p.parse_args())
