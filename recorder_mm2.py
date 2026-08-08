@@ -30,7 +30,7 @@ OPEN_TIMEOUT = 30.0
 SILENCE_TIMEOUT = 25.0
 KEEPALIVE_SEC = 5.0
 FLUSH_EVERY_SEC = 2.0
-PAIRS_PER_CONN = 3
+PAIRS_PER_CONN = 4
 LEVELS = 3
 
 
@@ -216,6 +216,8 @@ async def house(w, stop, secs):
 
 
 async def main(a):
+    global PAIRS_PER_CONN
+    PAIRS_PER_CONN = max(1, a.per_conn)
     pairs = load_pairs(a.pairs)
     print(f"جفت‌ها ({len(pairs)}): {', '.join(pairs)}\n")
     w = Writer()
@@ -245,6 +247,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--hours", type=float, default=4)
     p.add_argument("--pairs", default="top_pairs.txt")
+    p.add_argument("--per-conn", type=int, default=4,
+                   help="چند جفت روی هر اتصال (کمتر = پایدارتر)")
     a = p.parse_args()
     try:
         asyncio.run(main(a))
